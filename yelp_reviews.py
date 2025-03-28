@@ -1,84 +1,123 @@
+from flask import Flask, render_template, request
 import requests
 from urllib.parse import quote
+from datetime import datetime, timedelta
+import time
 
-# Your Yelp API Key
-API_KEY = "your_yelp_api_key"
+app = Flask(__name__)
 
+API_KEY = "c8g9_uU0PWU3WYiZ1uUUM7qaYu7wwgyfXl8JZKJd1Es2uJIL04gJ9_Xp8AMnfMl-PRWQVhLHFmoicDhcT2tmOTzIN7A5LU-AMCVTcZcrAGa1Q__INKR1xUsSAVSdZ3Yx"
 HEADERS = {"Authorization": f"Bearer {API_KEY}"}
-
 SEARCH_URL = "https://api.yelp.com/v3/businesses/search"
 REVIEWS_URL = "https://api.yelp.com/v3/businesses/{}/reviews"
 
-def search_restaurant(name, location):
-    """Searches for a restaurant on Yelp and shows its information."""
+def buscar_restaurante(nombre, ubicacion):
     params = {
-        "term": name,
-        "location": location,
-        "limit": 1 
+        "term": nombre,
+        "location": ubicacion,
+        "limit": 1
     }
-    
     response = requests.get(SEARCH_URL, headers=HEADERS, params=params)
     data = response.json()
-
+    
     if "businesses" not in data or len(data["businesses"]) == 0:
-        print("❌ No restaurant found.")
         return None
 
-    business = data["businesses"][0]
-    business_id = business["id"]
-    name = business["name"]
-    rating = business.get("rating", "N/A")
-    address = ", ".join(business["location"]["display_address"])
-    image_url = business.get("image_url", "Not available")
-    yelp_url = business["url"]
-    review_count = business.get("review_count", 0)
-
-    # Try to get the menu URL if available
-    menu_url = business.get("attributes", {}).get("menu_url", "Not available")
-
-    print(f"\n✅ Restaurant found: {name}")
-    print(f"📍 Address: {address}")
-    print(f"⭐ Rating: {rating} ({review_count} reviews)")
-    print(f"🖼️ Image: {image_url}")
-    print(f"🔗 More info: {yelp_url}")
-    print(f"📜 Menu: {menu_url}\n")
+    negocio = data["businesses"][0]
+    business_id = negocio["id"]
+    nombre = negocio["name"]
+    calificacion = negocio.get("rating", "N/A")
+    direccion = ", ".join(negocio["location"]["display_address"])
+    url_imagen = negocio.get("image_url", "No disponible")
+    url_yelp = negocio["url"]
+    cantidad_resenas = negocio.get("review_count", 0)
+    menu_url = negocio.get("attributes", {}).get("menu_url", "No disponible")
     
-    return business_id, yelp_url
+    info = {
+        "business_id": business_id,
+        "nombre": nombre,
+        "calificacion": calificacion,
+        "direccion": direccion,
+        "url_imagen": url_imagen,
+        "url_yelp": url_yelp,
+        "cantidad_resenas": cantidad_resenas,
+        "menu_url": menu_url
+    }
+    return info
 
-def get_reviews(business_id, yelp_url):
-    """Shows the reviews of a restaurant and provides a direct link to the reviews on Yelp."""
-    print(f"🔍 Business ID (before formatting): {business_id!r}")  # For debugging
-
-    # Encode business_id to avoid errors in the URL
+def obtener_reseñas(business_id, fecha_inicio, fecha_fin):
     safe_business_id = quote(business_id.strip(), safe="")
     url = REVIEWS_URL.format(safe_business_id)
+    reviews_data = []
+    next_page_token = None
 
-    response = requests.get(url, headers=HEADERS)
-    reviews_data = response.json()
+    while True:
+        params = {}
+        if next_page_token:
+            params['page_token'] = next_page_token
 
-    print("🔍 Yelp API response (debugging):")
-    print(reviews_data)
+        response = requests.get(url, headers=HEADERS, params=params)
+        data = response.json()
 
-    if "reviews" not in reviews_data:
-        print("❌ No reviews found in the API.")
-        print(f"🔗 See more reviews on Yelp: {yelp_url}#reviews\n")
-        return
+        if response.status_code != 200:
+            break
 
-    print("📢 Reviews found:\n")
-    for review in reviews_data["reviews"]:
-        print(f"📝 User: {review['user']['name']}")
-        print(f"⭐ Rating: {review['rating']} stars")
-        print(f"💬 Comment: {review['text']}\n")
-        print("="*40)
+        if "reviews" in data:
+            reviews_data.extend(data["reviews"])
 
-    print(f"🔗 See more reviews on Yelp: {yelp_url}#reviews\n")
+        next_page_token = data.get('next_page_token', None)
+        if not next_page_token:
+            break 
+        time.sleep(2)
+
+    reseñas_filtradas = []
+    for review in reviews_data:
+        review_date = datetime.strptime(review["time_created"], "%Y-%m-%d %H:%M:%S")
+        if fecha_inicio <= review_date.date() <= fecha_fin:
+            reseñas_filtradas.append({
+                "usuario": review['user']['name'],
+                "rating": review['rating'],
+                "comentario": review['text'],
+                "fecha": review_date.strftime('%Y-%m-%d')
+            })
+    return reseñas_filtradas
+
+@app.route("/", methods=["GET", "POST"])
+def index():
+    if request.method == "POST":
+        restaurante = request.form.get("restaurante")
+        ubicacion = request.form.get("ubicacion")
+        rango = request.form.get("rango")
+
+        hoy = datetime.now().date()
+        if rango == "hoy":
+            fecha_inicio = hoy
+            fecha_fin = hoy
+        elif rango == "7dias":
+            fecha_inicio = hoy - timedelta(days=7)
+            fecha_fin = hoy
+        elif rango == "mes":
+            fecha_inicio = hoy - timedelta(days=30)
+            fecha_fin = hoy
+        elif rango == "anio":
+            fecha_inicio = hoy - timedelta(days=365)
+            fecha_fin = hoy
+        elif rango == "todas":
+            fecha_inicio = datetime(1970, 1, 1).date()
+            fecha_fin = hoy
+        else:
+            fecha_inicio = hoy
+            fecha_fin = hoy
+
+        info_negocio = buscar_restaurante(restaurante, ubicacion)
+        if not info_negocio:
+            return render_template("review.html", error="No se encontró el restaurante.")
+
+        reseñas = obtener_reseñas(info_negocio["business_id"], fecha_inicio, fecha_fin)
+        return render_template("review.html", negocio=info_negocio, reseñas=reseñas,
+                               rango=rango, fecha_inicio=fecha_inicio, fecha_fin=fecha_fin)
+    
+    return render_template("index.html")
 
 if __name__ == "__main__":
-    restaurant = input("🔍 Restaurant name: ")
-    location = input("📍 Location (city/address): ")
-
-    result = search_restaurant(restaurant, location)
-
-    if result:
-        business_id, yelp_url = result
-        get_reviews(business_id, yelp_url)
+    app.run(debug=True)

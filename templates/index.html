@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Buscar Restaurante</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Buscar Restaurante en Yelp</h1>
+        <form method="post">
+            <label for="restaurante">Nombre del restaurante:</label>
+            <input type="text" id="restaurante" name="restaurante" required>
+
+            <label for="ubicacion">Ubicación (ciudad/dirección):</label>
+            <input type="text" id="ubicacion" name="ubicacion" required>
+
+            <label for="rango">Selecciona el rango de fecha para las reseñas:</label>
+            <select id="rango" name="rango" required>
+                <option value="todas">Todas</option>
+                <option value="hoy">Hoy</option>
+                <option value="7dias">Últimos 7 días</option>
+                <option value="mes">Último mes</option>
+                <option value="anio">Último año</option>
+            </select>
+
+            <button type="submit">Buscar</button>
+        </form>
+    </div>
+</body>
+</html>

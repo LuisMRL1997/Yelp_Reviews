@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Resultado de la Búsqueda</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        {% if error %}
+            <h2>{{ error }}</h2>
+        {% else %}
+            <h1>{{ negocio.nombre }}</h1>
+            <p><strong>Dirección:</strong> {{ negocio.direccion }}</p>
+            <p><strong>Calificación:</strong> {{ negocio.calificacion }} ({{ negocio.cantidad_resenas }} reseñas)</p>
+            <p><img src="{{ negocio.url_imagen }}" alt="Imagen del restaurante"></p>
+            <p><a href="{{ negocio.url_yelp }}" target="_blank">Más info en Yelp</a></p>
+            <p><a href="{{ negocio.menu_url }}" target="_blank">Ver menú</a></p>
+            <hr>
+            <h2>Reseñas 
+                {% if rango == "hoy" %}
+                    del día de hoy
+                {% elif rango == "7dias" %}
+                    de los últimos 7 días ({{ fecha_inicio }} a {{ fecha_fin }})
+                {% elif rango == "mes" %}
+                    del último mes ({{ fecha_inicio }} a {{ fecha_fin }})
+                {% elif rango == "anio" %}
+                    del último año ({{ fecha_inicio }} a {{ fecha_fin }})
+                {% elif rango == "todas" %}
+                    de todas las fechas disponibles
+                {% endif %}
+            </h2>
+            {% if reseñas %}
+                {% for review in reseñas %}
+                    <div class="review">
+                        <p><strong>Usuario:</strong> {{ review.usuario }}</p>
+                        <p><strong>Calificación:</strong> {{ review.rating }} estrellas</p>
+                        <p><strong>Fecha:</strong> {{ review.fecha }}</p>
+                        <p><strong>Comentario:</strong> {{ review.comentario }}</p>
+                    </div>
+                    <hr>
+                {% endfor %}
+            {% else %}
+                <p>No se encontraron reseñas para el rango seleccionado.</p>
+            {% endif %}
+        {% endif %}
+        <a href="{{ url_for('index') }}">Volver a la búsqueda</a>
+    </div>
+</body>
+</html>
