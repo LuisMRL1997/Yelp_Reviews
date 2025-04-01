@@ -6,7 +6,7 @@ import time
 
 app = Flask(__name__)
 
-API_KEY = "c8g9_uU0PWU3WYiZ1uUUM7qaYu7wwgyfXl8JZKJd1Es2uJIL04gJ9_Xp8AMnfMl-PRWQVhLHFmoicDhcT2tmOTzIN7A5LU-AMCVTcZcrAGa1Q__INKR1xUsSAVSdZ3Yx"
+API_KEY = "****"
 HEADERS = {"Authorization": f"Bearer {API_KEY}"}
 SEARCH_URL = "https://api.yelp.com/v3/businesses/search"
 REVIEWS_URL = "https://api.yelp.com/v3/businesses/{}/reviews"
